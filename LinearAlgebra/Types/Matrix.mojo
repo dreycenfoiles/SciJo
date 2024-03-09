@@ -208,18 +208,39 @@ struct Matrix[dtype: DType = DType.float32](CollectionElement):
     fn __truediv__(self, other: Self) -> Self: 
         return self._binary_op_[math.div](other)
     
-    # fn __matmul__(self, other: Self) -> Self: 
+    fn __matmul__(self, other: Self) -> Self: 
 
-    #     for 
+        var new_mat = Self(self.rows, self.cols)
+
+        for i in range(self.rows):
+            for j in range(self.cols):
+                for k in range(other.rows):
+                    new_mat[i,j] += self[i,k] * other[k,j]
+
+        return new_mat
+
+    fn __imatmul__(self, inout other: Self): 
+
+        var new_mat = Self(self.rows, self.cols)
+
+        for i in range(self.rows):
+            for j in range(self.cols):
+                for k in range(other.rows):
+                    new_mat[i,j] += self[i,k] * other[k,j]
+
+        # return new_mat
+
         
 
 fn main():
-    var mat1 = Matrix(4, 4)
-    var mat2 = Matrix(4, 4)
+    var mat1 = Matrix(2, 2)
+    var mat2 = Matrix(2, 2)
 
     mat1[0, 0] = 2
+    mat1[0, 1] = 5
     mat2[0, 0] = 3
-    mat2[1, 3] = 1
+    mat2[1, 1] = 1
 
-    var mat3 = mat1 + mat2
+
+    var mat3 = mat1 @ mat2 
     print(mat3.buffer)

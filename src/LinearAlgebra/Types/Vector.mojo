@@ -17,7 +17,7 @@ struct Vector[dtype: DType = DType.float64]:
         self.size = size
         self.data = DTypePointer[dtype].alloc(self.size)
 
-        self.buffer = Buffer[dtype](self.data)
+        self.buffer = Buffer[dtype](self.data, self.size)
         self.buffer.fill(0)
 
     fn __del__(owned self):
@@ -64,7 +64,7 @@ struct Vector[dtype: DType = DType.float64]:
 
         return self.buffer[idx]
 
-    fn __getitem__(self, owned idx: Int, val: Scalar[dtype]):
+    fn __setitem__(inout self, owned idx: Int, val: Scalar[dtype]):
         self.buffer[idx] = val
 
     fn __eq__(self, other: Self) -> Bool:

@@ -1,18 +1,20 @@
 from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
 from algorithm.swap import swap
-from memory.memory import memcpy
 from .Types.Vector import Vector
+from utils.index import Index
+from tensor.tensor import Tensor
+
 
 struct LU[dtype: DType]:
     alias TINY = 1e-40
 
     var n: Int
 
-    var vv: DTypePointer[dtype]  # TODO Give a better name
+    var vv: List[Scalar[dtype]]  # TODO Give a better name
     var index: List[Int]
     var d: Int  # Stores the sign / #TODO Give a better name
 
-    var data: DTypePointer[dtype]
+    var tensor: Tensor[dtype]
 
     var big: Scalar[dtype]
     var tmp: Scalar[dtype]
@@ -29,17 +31,14 @@ struct LU[dtype: DType]:
 
         self.n = mat.cols
 
-        self.data = DTypePointer[dtype].alloc(self.n * self.n)
+        self.vv = List[Scalar[dtype]](capacity=self.n)
 
-        self.vv = DTypePointer[dtype].alloc(self.n)
-        # self.index = 
-        
         self.index = List[Int](capacity=self.n)
 
-        for i in range(0,self.n):
-            self.index[i] = i 
-        
-        memcpy(self.data, mat.data, self.n*self.n)
+        for i in range(self.n + 1):
+            self.index[i] = i
+
+        self.tensor = mat.tensor
 
         # Normalize each row
 
@@ -58,7 +57,7 @@ struct LU[dtype: DType]:
             self.imax = k
 
             for i in range(k, self.n):
-                self.tmp = self.vv[i]*abs(self[i, k])
+                self.tmp = self.vv[i] * abs(self[i, k])
                 if self.tmp > self.big:
                     self.big = self.tmp
                     self.imax = i
@@ -67,7 +66,8 @@ struct LU[dtype: DType]:
                 for j in range(0, self.n):
                     swap(self[k, j], self[self.imax, j])
                 self.d = -self.d
-                self.index[self.imax] = self.index[k]
+                self.vv[self.imax] = self.vv[k]
+            self.index[k] = self.imax
 
             if self[k, k] == 0:
                 self[k, k] = self.TINY
@@ -78,29 +78,56 @@ struct LU[dtype: DType]:
                 for j in range(k + 1, self.n):
                     self[i, j] -= self.tmp * self[k, j]
 
-    fn __del__(owned self):
-        self.data.free()
+    fn __copyinit__(inout self, other: Self):
+        self.tensor = other.tensor
+        self.n = other.n
+        self.vv = other.vv
+        self.index = other.index
+        self.d = other.d
+        self.big = other.big
+        self.tmp = other.tmp
+        self.imax = other.imax
 
     fn __getitem__(self, row: Int, col: Int) -> Scalar[dtype]:
-        var offset = col + row * self.n
-        return self.data[offset]
+        return self.tensor[row, col]
 
     fn __setitem__(inout self, row: Int, col: Int, val: Scalar[dtype]):
-        var offset = col + row * self.n 
-        self.data[offset] = val 
+        self.tensor[Index(row, col)] = val
 
     fn __str__(self) -> String:
+        var printStr: String = ""
 
-        var printStr: String = "\n"
-        
         for i in range(self.n):
-            for j in range(self.n):
-                printStr += " " + str(self[i,j])
             printStr += "\n"
+            for j in range(self.n):
+                printStr += str(self[i, j]) + " "
+
+        printStr += "\n"
 
         return printStr
 
+    fn solve(self, b: Vector[dtype]) raises -> Vector[dtype]:
+        var solution = b
 
-    fn solve(self, b: Vector[dtype]):
+        for i in reversed(range(self.n)):
+            for j in range(self.n):
+                swap(solution[i], solution[self.index[i]])
 
-        
+        var total: Scalar[dtype] = 0
+
+        # lower triangular
+
+        for i in range(self.n):
+            total = 0
+            for j in range(i):
+                total += self[i, j] * solution[j]
+            solution[i] = b[i] - total
+
+        # upper triangular
+        for i in reversed(range(self.n)):
+            total = 0
+            for j in range(i + 1, self.n):
+                total += self[i, j] * solution[j]
+            solution[i] = (solution[i] - total) / self[i, i]
+
+        return solution

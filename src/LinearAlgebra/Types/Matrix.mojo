@@ -1,17 +1,17 @@
-from memory import memset_zero, memcpy
 from algorithm import vectorize, parallelize, elementwise
-from buffer.list import DimList
-import math
-from random import rand, seed
-from math import max
-from buffer.buffer import NDBuffer
+from math import isclose
 from pathlib.path import Path
 from utils.index import Index
+from SciJo.src.LinearAlgebra.Types.Vector import Vector
+from testing.testing import Testable
+from tensor.tensor import Tensor
+from random.random import rand
 
 
-struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
-    var data: DTypePointer[dtype]
-    var buffer: NDBuffer[dtype, 2]
+struct Matrix[dtype: DType = DType.float64](
+    Stringable, CollectionElement, Testable
+):
+    var tensor: Tensor[dtype]
 
     var size: Int
     var rows: Int
@@ -28,37 +28,31 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
         self.rows = rows
         self.cols = cols
 
-        self.data = DTypePointer[dtype].alloc(self.size)
-        self.buffer = NDBuffer[dtype, 2](
-            self.data, DimList(self.rows, self.cols)
-        )
+        self.tensor = Tensor[dtype](self.rows, self.cols)
 
-        self.buffer.fill(0)
+    fn __init__(inout self, tensor: Tensor[dtype]):
+        self.rows = tensor.shape()[0]
+        self.cols = tensor.shape()[1]
+        self.size = self.rows * self.cols
 
-    fn __del__(owned self):
-        self.data.free()
+        self.tensor = tensor
 
     fn __copyinit__(inout self, other: Self):
         self.size = other.size
         self.rows = other.rows
         self.cols = other.cols
 
-        self.data = DTypePointer[dtype].alloc(self.size)
-        memcpy(self.data, other.data, self.size)
-
-        self.buffer = NDBuffer[dtype, 2](self.data, DimList(self.rows, self.cols))
+        self.tensor = other.tensor
 
     fn __moveinit__(inout self, owned other: Self):
         self.size = other.size
         self.rows = other.rows
         self.cols = other.cols
 
-        self.data = other.data
-        self.buffer = NDBuffer[dtype, 2](self.data, DimList(self.rows, self.cols))
+        self.tensor = other.tensor^
 
-    fn fill_rand(inout self):
-        seed()
-        rand(self.data, self.size)
+    fn rand(inout self):
+        rand[dtype](self.tensor.data(), self.size)
 
     ###########
     # Getters #
@@ -87,7 +81,7 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
         row = self._adjust_index_(row, self.rows)
         col = self._adjust_index_(col, self.cols)
 
-        return self.buffer[row, col]
+        return self.tensor[row, col]
 
     fn __getitem__(
         self, owned row_slice: Slice, owned col_slice: Slice
@@ -104,9 +98,10 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
                 var row_idx = row_slice.start + idx_row_slice * row_slice.step
                 var col_idx = col_slice.start + idx_col_slice * col_slice.step
 
-                sliced_mat.buffer.store[width=simd_width](
-                    Index(idx_row_slice, idx_col_slice),
-                    self.buffer.load[width=simd_width](Index(row_idx, col_idx)),
+                sliced_mat.store(
+                    idx_row_slice,
+                    idx_col_slice,
+                    self.load[simd_width](row_idx, col_idx),
                 )
 
             vectorize[slice_row, self.simd_width](len(col_slice))
@@ -125,7 +120,7 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
         row = self._adjust_index_(row, self.rows)
         col = self._adjust_index_(col, self.cols)
 
-        self.buffer[Index(row, col)] = val
+        self.tensor[Index(row, col)] = val
 
     fn __setitem__(
         inout self, owned row_slice: Slice, owned col_slice: Slice, val: Self
@@ -140,9 +135,10 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
                 var row_idx = row_slice.start + idx_row_slice * row_slice.step
                 var col_idx = col_slice.start + idx_col_slice * col_slice.step
 
-                self.buffer.store[width=simd_width](
-                    Index(idx_row_slice, idx_col_slice),
-                    val.buffer.load[width=simd_width](Index(row_idx, col_idx)),
+                self.store[simd_width](
+                    idx_row_slice,
+                    idx_col_slice,
+                    val.load[simd_width](row_idx, col_idx),
                 )
 
             vectorize[slice_row, self.simd_width](len(col_slice))
@@ -155,55 +151,23 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
 
     fn __neg__(self) -> Self:
         var new_mat = Self(self.rows, self.cols)
-
-        @parameter
-        fn wrapper[simd_width: Int, rank: Int](idx: StaticIntTuple[rank]):
-            var loc = Index(idx[0], idx[1])
-
-            new_mat.buffer.store[width=simd_width](
-                loc,
-                -1 * self.buffer.load[width=simd_width](loc),
-            )
-
-        elementwise[wrapper, 2](StaticIntTuple[2](self.rows, self.cols))
+        new_mat.tensor = self.tensor * -1.0
         return new_mat
 
-    fn _binary_op_[
-        func: fn[dtype: DType, width: Int] (
-            SIMD[dtype, width], SIMD[dtype, width]
-        ) -> SIMD[dtype, width]
-    ](self, other: Self) -> Self:
-        var new_mat = Self(self.rows, self.cols)
+    fn __add__(self, other: Self) raises -> Self:
+        return Self(self.tensor + other.tensor)
 
-        @parameter
-        fn wrapper[simd_width: Int, rank: Int](idx: StaticIntTuple[rank]):
-            var loc = Index(idx[1], idx[2])
+    fn __sub__(self, other: Self) raises -> Self:
+        return Self(self.tensor - other.tensor)
 
-            new_mat.buffer.store[width=simd_width](
-                loc,
-                func(
-                    self.buffer.load[width=simd_width](loc),
-                    other.buffer.load[width=simd_width](loc),
-                ),
-            )
+    fn __mul__(self, other: Self) raises -> Self:
+        return Self(self.tensor * other.tensor)
 
-        elementwise[wrapper, 2](StaticIntTuple[2](self.rows, self.cols))
-        return new_mat
-
-    fn __add__(self, other: Self) -> Self:
-        return self._binary_op_[math.add](other)
-
-    fn __sub__(self, other: Self) -> Self:
-        return self._binary_op_[math.sub](other)
-
-    fn __mul__(self, other: Self) -> Self:
-        return self._binary_op_[math.mul](other)
-
-    fn __truediv__(self, other: Self) -> Self:
-        return self._binary_op_[math.div](other)
+    fn __truediv__(self, other: Self) raises -> Self:
+        return Self(self.tensor / other.tensor)
 
     # TODO Make more efficient
-    fn __matmul__(self, other: Self) -> Self:
+    fn __matmul__(self, other: Self) raises -> Self:
         var new_mat = Self(self.rows, self.cols)
 
         for i in range(self.rows):
@@ -213,13 +177,22 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
 
         return new_mat
 
+    fn __matmul__(self, other: Vector[dtype]) raises -> Vector[dtype]:
+        var new_vec = Vector[dtype](self.rows)
+
+        for i in range(self.rows):
+            for j in range(self.cols):
+                new_vec[i] += self[i, j] * other[j]
+
+        return new_vec
+
     # TODO Make prettier printing
     fn __str__(self) -> String:
         var printStr: String = "\n"
 
         for i in range(self.rows):
             for j in range(self.cols):
-                printStr += " " + str(self[i, j])
+                printStr += str(self[i, j]) + " "
             printStr += "\n"
 
         return printStr
@@ -227,10 +200,23 @@ struct Matrix[dtype: DType = DType.float64](Stringable, CollectionElement):
     fn __eq__(self, other: Self) -> Bool:
         for i in range(self.rows):
             for j in range(self.cols):
-                if self[i, j] != other[i, j]:
+                if not isclose(self[i, j], other[i, j]):
                     return False
-
         return True
 
+    fn __ne__(self, other: Self) -> Bool:
+        return not self == other
+
+    fn load[width: Int](self, row: Int, col: Int) -> SIMD[dtype, width]:
+        return self.tensor.load[width=width](row, col)
+
+    fn store[
+        width: Int
+    ](inout self, row: Int, col: Int, val: SIMD[dtype, width]):
+        self.tensor.store[width=width](Index(row, col), val)
+
     fn tofile(self, path: Path) raises:
-        self.buffer.tofile(path)
+        self.tensor.tofile(path)
+
+    fn fromfile(inout self, path: Path) raises:
+        self.tensor = self.tensor.fromfile(path)

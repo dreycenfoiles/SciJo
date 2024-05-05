@@ -35,48 +35,35 @@ struct LU[dtype: DType]:
 
         self.index = List[Int](capacity=self.n)
 
-        for i in range(self.n + 1):
+        for i in range(self.n):
             self.index[i] = i
 
         self.tensor = mat.tensor
 
-        # Normalize each row
-
-        for i in range(0, self.n):
-            self.big = 0
-
-            for j in range(0, self.n):
-                self.tmp = abs(self[i, j])
-                if self.tmp > self.big:
-                    self.big = self.tmp
-
-            self.vv[i] = 1 / self.big
-
-        for k in range(0, self.n):
+        # Pivoting
+        for k in range(self.n):
             self.big = 0
             self.imax = k
 
-            for i in range(k, self.n):
-                self.tmp = self.vv[i] * abs(self[i, k])
+            for i in range(self.n):
+                self.tmp = abs(self[i, k])
                 if self.tmp > self.big:
                     self.big = self.tmp
                     self.imax = i
 
-            if k != self.imax:
-                for j in range(0, self.n):
-                    swap(self[k, j], self[self.imax, j])
-                self.d = -self.d
-                self.vv[self.imax] = self.vv[k]
-            self.index[k] = self.imax
+            swap(self.index[k], self.index[self.imax])
+            for j in range(self.n):
+                swap(self[self.imax, j], self[k, j])
 
-            if self[k, k] == 0:
-                self[k, k] = self.TINY
 
-            for i in range(k + 1, self.n):
-                self[i, k] /= self[k, k]
-                self.tmp = self[i, k]
-                for j in range(k + 1, self.n):
-                    self[i, j] -= self.tmp * self[k, j]
+        # LU decomposition
+        for k in range(self.n):
+
+            for i in range(k+1, self.n):
+                self[i,k] /= self[k,k]
+
+                for j in range(k+1, self.n):
+                    self[i,j] -= (self[i,k] * self[k,j])
 
     fn __copyinit__(inout self, other: Self):
         self.tensor = other.tensor
@@ -106,12 +93,11 @@ struct LU[dtype: DType]:
 
         return printStr
 
-    fn solve(self, b: Vector[dtype]) raises -> Vector[dtype]:
+    fn solve(self, owned b: Vector[dtype]) -> Vector[dtype]:
         var solution = b
 
-        for i in reversed(range(self.n)):
-            for j in range(self.n):
-                swap(solution[i], solution[self.index[i]])
+        for i in range(self.n):
+            swap(solution[self.index[i]], b[i])
 
         var total: Scalar[dtype] = 0
 

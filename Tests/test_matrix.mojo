@@ -1,4 +1,5 @@
 from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
+from SciJo.src.LinearAlgebra.Types.Vector import Vector
 from testing import assert_equal, assert_not_equal
 
 
@@ -155,17 +156,25 @@ fn test_matrix_multiplication() raises:
     assert_equal(matmul[1, 0], 15)
     assert_equal(matmul[1, 1], 22)
 
-fn main() raises:
 
-    var mat1 = Matrix(100, 100)
-    var mat2 = Matrix(100, 100)
+fn test_matrix_vector_multiplication() raises:
 
-    mat1.fill_rand()
-    mat2.fill_rand()
+    var mat = Matrix(2,2)
+    var vec = Vector(2)
 
-    var new_mat = mat1 @ mat2 
+    mat[0,0] = 1
+    mat[0,1] = 2
+    mat[1,0] = 3
+    mat[1,1] = 4
 
-    new_mat.tofile("matmul.mat")
+    vec[0] = 2
+    vec[1] = 1
+
+    var mul = mat @ vec 
+
+    assert_equal(mul[0], 4)
+    assert_equal(mul[1], 10)
+
 
      
 

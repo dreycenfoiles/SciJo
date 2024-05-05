@@ -158,8 +158,8 @@ fn test_copy() raises:
 #     var mat1 = Matrix(100, 100)
 #     var mat2 = Matrix(100, 100)
 
-#     mat1.fill_rand()
-#     mat2.fill_rand()
+#     mat1.rand()
+#     mat2.rand()
 
 #     var new_mat = mat1 @ mat2 
 

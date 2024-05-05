@@ -1,44 +1,28 @@
-from buffer import Buffer
-from memory import memcpy
 from algorithm import vectorize
 from random import rand, seed
 from pathlib.path import Path
+from testing.testing import Testable
+from math import isclose
+from tensor.tensor import Tensor
 
 
-struct Vector[dtype: DType = DType.float64]:
-    var data: DTypePointer[dtype]
-    var buffer: Buffer[dtype]
+struct Vector[dtype: DType = DType.float64](CollectionElement, Stringable, Testable):
 
+    var tensor: Tensor[dtype]
     var size: Int
-
     alias simd_width: Int = simdwidthof[dtype]()
 
     fn __init__(inout self, size: Int):
         self.size = size
-        self.data = DTypePointer[dtype].alloc(self.size)
-
-        self.buffer = Buffer[dtype](self.data, self.size)
-        self.buffer.fill(0)
-
-    fn __del__(owned self):
-        self.data.free()
+        self.tensor = Tensor[dtype](self.size)
 
     fn __copyinit__(inout self, other: Self):
         self.size = other.size
-        self.data = DTypePointer[dtype].alloc(self.size)
-        memcpy(self.data, other.data, self.size)
-
-        self.buffer = Buffer[dtype](self.data, self.size)
+        self.tensor = other.tensor
 
     fn __moveinit__(inout self, owned other: Self):
         self.size = other.size
-
-        self.data = other.data
-        self.buffer = Buffer[dtype](self.data, self.size)
-
-    fn fill_rand(inout self):
-        seed()
-        rand(self.data, self.size)
+        self.tensor = other.tensor^
 
     fn _adjust_index_(self, idx: Int, size: Int) -> Int:
         if idx > size:
@@ -62,17 +46,34 @@ struct Vector[dtype: DType = DType.float64]:
     fn __getitem__(self, owned idx: Int) -> Scalar[dtype]:
         idx = self._adjust_index_(idx, self.size)
 
-        return self.buffer[idx]
+        return self.tensor[idx]
 
     fn __setitem__(inout self, owned idx: Int, val: Scalar[dtype]):
-        self.buffer[idx] = val
+        self.tensor[idx] = val
 
     fn __eq__(self, other: Self) -> Bool:
         for i in range(self.size):
-            if self[i] != other[i]:
+            if not isclose(self[i], other[i]):
                 return False
 
-        return False
+        return True 
+
+    fn __ne__(self, other: Self) -> Bool:
+        return not self == other  
 
     fn tofile(self, path: Path) raises:
-        self.buffer.tofile(path)
+        self.tensor.tofile(path)
+
+    fn rand(self):
+        seed()
+        rand(self.tensor.data(), self.size)
+
+    fn __str__(self) -> String:
+        
+        var printStr: String = "\n"
+
+        for i in range(self.size):
+            printStr += self[i] + " ".__str__()
+
+        return printStr
+

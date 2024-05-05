@@ -207,6 +207,16 @@ struct Matrix[dtype: DType = DType.float64](
     fn __ne__(self, other: Self) -> Bool:
         return not self == other
 
+    fn T(self) -> Self:
+        
+        var new_mat = Matrix[dtype](self.cols,self.rows)
+
+        for i in range(self.rows):
+            for j in range(self.cols):
+                new_mat[j,i] = self[i,j]
+
+        return new_mat
+
     fn load[width: Int](self, row: Int, col: Int) -> SIMD[dtype, width]:
         return self.tensor.load[width=width](row, col)
 

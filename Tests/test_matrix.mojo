@@ -175,6 +175,30 @@ fn test_matrix_vector_multiplication() raises:
     assert_equal(mul[0], 4)
     assert_equal(mul[1], 10)
 
+fn test_transpose() raises:
 
+    var mat = Matrix(3,3)
+
+    mat[0,0] = 1
+    mat[0,1] = 2
+    mat[1,0] = 3
+    mat[1,1] = 4
+    mat[1,2] = 5
+    mat[2,1] = 6
+    mat[2,2] = 7
+    mat[0,2] = 8
+
+    var mat_transposed = mat.T() 
+    
+    assert_equal(mat_transposed[0,0], 1)
+    assert_equal(mat_transposed[1,0], 2)
+    assert_equal(mat_transposed[0,1], 3)
+    assert_equal(mat_transposed[1,1], 4)
+    assert_equal(mat_transposed[2,1], 5)
+    assert_equal(mat_transposed[1,2], 6)
+    assert_equal(mat_transposed[2,2], 7)
+    assert_equal(mat_transposed[2,0], 8)
      
+fn main() raises:
+    test_transpose()
 

@@ -3,36 +3,39 @@ from tensor import Tensor
 from math import sqrt, exp 
 from utils.index import Index
 from python import Python
-from random import randn_float64
+from testing.testing import Testable
+from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
 
-alias type = DType.float64
+struct Cholesky[dtype: DType = DType.float64]:
 
-fn cholesky(A: Tensor[type]) -> Tensor[type]:
+    var tensor: Tensor[dtype] 
+    var n: Int 
+    var sum: Scalar[dtype]
 
-    var sum: Float64 = 0.
+    fn __init__(inout self, A: Matrix[dtype]):
 
-    var size = A.shape()[0]
+        self.sum = 0
+        self.n = A.rows
+        self.tensor = A.tensor
 
-    var L = Tensor[type](size, size)
+        for i in range(self.n):
+            for j in range(i, self.n):
+                self.sum = 0
+                for k in range(j):
+                    self.sum += self[i,k] * self[j,k]
 
-    for i in range(size):
-        for j in range(i+1):
-            sum = 0
-            for k in range(j):
-                sum += L[i,k] * L[j,k]
+                if i == j:
+                    self[i,j] = sqrt(A[j,j] - self.sum)
 
-            if i == j:
-                L[Index(i,j)] = sqrt(A[j][j] - sum)
+                else:
+                    self[i,j] = 1 / self[j,j] * (A[i,j] - self.sum)
 
-            else:
-                L[Index(i,j)] = 1 / L[j,j] * (A[i][j] - sum)
-    
-    return L
+    fn __getitem__(self, row: Int, col: Int) -> Scalar[dtype]:
+        return self.tensor[row, col]
 
-def LU(A):
+    fn __setitem__(inout self, row: Int, col: Int, val: Scalar[dtype]):
+        self.tensor[Index(row, col)] = val 
+        
 
-    np = Python.import_module("numpy")
-
-    A.shape
 
 

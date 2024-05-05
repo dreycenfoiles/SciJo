@@ -60,9 +60,3 @@ fn test_solve() raises:
 
     assert_equal(vec_guess, vec)
 
-
-fn main() raises:
-    
-    test_lu()
-
-

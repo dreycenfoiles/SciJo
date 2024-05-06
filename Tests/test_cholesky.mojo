@@ -9,6 +9,7 @@ from tensor.tensor import Tensor
 
 fn test_cholesky() raises:
 
+    # TODO make better tests
     var n = 2
     var mat1 = Matrix(n, n)
 

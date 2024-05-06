@@ -5,7 +5,8 @@ from utils.index import Index
 from SciJo.src.LinearAlgebra.Types.Vector import Vector
 from testing.testing import Testable
 from tensor.tensor import Tensor
-from random.random import rand
+from random.random import rand, randn, seed
+from SciJo.src.LinearAlgebra.Cholesky import Cholesky
 
 
 struct Matrix[dtype: DType = DType.float64](
@@ -37,6 +38,13 @@ struct Matrix[dtype: DType = DType.float64](
 
         self.tensor = tensor
 
+    fn __init__(inout self, L: Cholesky[dtype]):
+        self.rows = L.n
+        self.cols = L.n
+        self.size = self.rows * self.cols
+
+        self.tensor = L.tensor
+
     fn __copyinit__(inout self, other: Self):
         self.size = other.size
         self.rows = other.rows
@@ -53,6 +61,9 @@ struct Matrix[dtype: DType = DType.float64](
 
     fn rand(inout self):
         rand[dtype](self.tensor.data(), self.size)
+
+    fn randn(inout self):
+        randn[dtype](self.tensor.data(), self.size)
 
     ###########
     # Getters #
@@ -163,6 +174,9 @@ struct Matrix[dtype: DType = DType.float64](
     fn __mul__(self, other: Self) raises -> Self:
         return Self(self.tensor * other.tensor)
 
+    fn __mul__(self, other: Scalar[dtype]) -> Self:
+        return Self(self.tensor * other)
+
     fn __truediv__(self, other: Self) raises -> Self:
         return Self(self.tensor / other.tensor)
 
@@ -208,12 +222,11 @@ struct Matrix[dtype: DType = DType.float64](
         return not self == other
 
     fn T(self) -> Self:
-        
-        var new_mat = Matrix[dtype](self.cols,self.rows)
+        var new_mat = Matrix[dtype](self.cols, self.rows)
 
         for i in range(self.rows):
             for j in range(self.cols):
-                new_mat[j,i] = self[i,j]
+                new_mat[j, i] = self[i, j]
 
         return new_mat
 
@@ -230,3 +243,12 @@ struct Matrix[dtype: DType = DType.float64](
 
     fn fromfile(inout self, path: Path) raises:
         self.tensor = self.tensor.fromfile(path)
+
+
+fn eye[dtype: DType = DType.float64](n: Int) -> Matrix[dtype]:
+    var mat = Matrix[dtype](n, n)
+
+    for i in range(n):
+        mat[i, i] = 1
+
+    return mat

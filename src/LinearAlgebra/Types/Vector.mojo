@@ -1,5 +1,5 @@
 from algorithm import vectorize
-from random import rand, seed
+from random import rand, seed, randn
 from pathlib.path import Path
 from testing.testing import Testable
 from math import isclose
@@ -67,6 +67,10 @@ struct Vector[dtype: DType = DType.float64](CollectionElement, Stringable, Testa
     fn rand(self):
         seed()
         rand(self.tensor.data(), self.size)
+    
+    fn randn(self):
+        seed()
+        randn(self.tensor.data(), self.size)
 
     fn __str__(self) -> String:
         

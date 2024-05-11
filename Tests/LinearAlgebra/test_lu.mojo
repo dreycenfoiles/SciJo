@@ -1,9 +1,9 @@
 from python import Python
 from testing import assert_equal, assert_almost_equal
 
-from SciJo.src.LinearAlgebra.LU import LU
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
+from SciJo.LinearAlgebra.LU import LU
+from SciJo.LinearAlgebra.Types.Matrix import Matrix
+from SciJo.LinearAlgebra.Types.Vector import Vector
 from algorithm.swap import swap
 from tensor.tensor import Tensor
 

@@ -4,7 +4,7 @@ from math import sqrt, exp
 from utils.index import Index
 from python import Python
 from testing.testing import Testable
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
+from SciJo.LinearAlgebra.Types.Matrix import Matrix
 
 
 struct Cholesky[dtype: DType = DType.float64]:

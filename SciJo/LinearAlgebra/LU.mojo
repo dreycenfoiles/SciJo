@@ -1,5 +1,4 @@
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
-from algorithm.swap import swap
+from SciJo.LinearAlgebra.Types.Matrix import Matrix
 from .Types.Vector import Vector
 from utils.index import Index
 from tensor.tensor import Tensor

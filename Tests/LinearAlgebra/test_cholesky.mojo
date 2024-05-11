@@ -1,8 +1,10 @@
 from testing import assert_equal, assert_almost_equal
 
-from SciJo.src.LinearAlgebra.Cholesky import Cholesky
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
+from SciJo.LinearAlgebra.Cholesky import Cholesky
+from SciJo.LinearAlgebra.Types.Matrix import Matrix
+from SciJo.LinearAlgebra.Types.Vector import Vector
+from 
+
 from algorithm.swap import swap
 from tensor.tensor import Tensor
 

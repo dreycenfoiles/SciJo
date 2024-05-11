@@ -1,5 +1,9 @@
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
+import sys
+
+from SciJo.LinearAlgebra.Types.Vector import Vector
 from testing import assert_equal, assert_not_equal
+
+
 
 
 fn test_getters_and_setters() raises:

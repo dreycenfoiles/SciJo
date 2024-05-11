@@ -2,11 +2,12 @@ from algorithm import vectorize, parallelize, elementwise
 from math import isclose
 from pathlib.path import Path
 from utils.index import Index
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
+from SciJo.LinearAlgebra.Types.Vector import Vector
 from testing.testing import Testable
 from tensor.tensor import Tensor
 from random.random import rand, randn, seed
-from SciJo.src.LinearAlgebra.Cholesky import Cholesky
+from SciJo.LinearAlgebra.Cholesky import Cholesky
+from algorithm import Static2DTileUnitFunc as Tile2DFunc
 
 
 struct Matrix[dtype: DType = DType.float64](
@@ -60,10 +61,10 @@ struct Matrix[dtype: DType = DType.float64](
         self.tensor = other.tensor^
 
     fn rand(inout self):
-        rand[dtype](self.tensor.data(), self.size)
+        rand[dtype](self.tensor.unsafe_ptr(), self.size)
 
     fn randn(inout self):
-        randn[dtype](self.tensor.data(), self.size)
+        randn[dtype](self.tensor.unsafe_ptr(), self.size)
 
     ###########
     # Getters #
@@ -183,12 +184,7 @@ struct Matrix[dtype: DType = DType.float64](
     # TODO Make more efficient
     fn __matmul__(self, other: Self) raises -> Self:
         var new_mat = Self(self.rows, self.cols)
-
-        for i in range(self.rows):
-            for j in range(self.cols):
-                for k in range(other.rows):
-                    new_mat[i, j] += self[i, k] * other[k, j]
-
+        matmul[dtype, self.simd_width](new_mat, self, other)
         return new_mat
 
     fn __matmul__(self, other: Vector[dtype]) raises -> Vector[dtype]:
@@ -252,3 +248,47 @@ fn eye[dtype: DType = DType.float64](n: Int) -> Matrix[dtype]:
         mat[i, i] = 1
 
     return mat
+
+
+# From https://docs.modular.com/mojo/notebooks/Matmul
+
+
+# Perform 2D tiling on the iteration space defined by end_x and end_y.
+fn tile[tiled_fn: Tile2DFunc, tile_x: Int, tile_y: Int](end_x: Int, end_y: Int):
+    # Note: this assumes that ends are multiples of the tiles.
+    for y in range(0, end_y, tile_y):
+        for x in range(0, end_x, tile_x):
+            tiled_fn[tile_x, tile_y](x, y)
+
+
+# Unroll the vectorized loop by a constant factor.
+fn matmul[dtype: DType, width: Int](inout C: Matrix[dtype], A: Matrix[dtype], B: Matrix[dtype]):
+    @parameter
+    fn calc_row(m: Int):
+        @parameter
+        fn calc_tile[tile_x: Int, tile_y: Int](x: Int, y: Int):
+            for k in range(y, y + tile_y):
+
+                @parameter
+                fn dot[width: Int](n: Int):
+                    C.store[width](
+                        m,
+                        n + x,
+                        C.load[width](m, n + x)
+                        + A[m, k] * B.load[width](k, n + x),
+                    )
+
+                # Vectorize by nelts and unroll by tile_x/nelts
+                # Here unroll factor is 4
+                alias unroll_factor = tile_x // width
+                vectorize[
+                    dot, width, size=tile_x, unroll_factor=unroll_factor
+                ]()
+
+        alias tile_size = 4
+        tile[calc_tile, width * tile_size, tile_size](A.cols, C.cols)
+
+    parallelize[calc_row](C.rows, C.rows)
+
+
+

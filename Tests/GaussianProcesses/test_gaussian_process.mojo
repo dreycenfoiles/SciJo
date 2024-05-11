@@ -1,8 +1,8 @@
-from SciJo.src.GaussianProcess.kernels import RBF
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix, eye
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
-from SciJo.src.LinearAlgebra.LU import LU
-from SciJo.src.LinearAlgebra.Cholesky import Cholesky
+from SciJo.GaussianProcess.kernels import RBF
+from SciJo.LinearAlgebra.Types.Matrix import Matrix, eye
+from SciJo.LinearAlgebra.Types.Vector import Vector
+from SciJo.LinearAlgebra.LU import LU
+from SciJo.LinearAlgebra.Cholesky import Cholesky
 from python import Python
 from tensor.tensor import Tensor
 

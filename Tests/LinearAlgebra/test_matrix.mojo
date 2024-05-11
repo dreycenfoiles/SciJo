@@ -1,6 +1,7 @@
-from SciJo.src.LinearAlgebra.Types.Matrix import Matrix
-from SciJo.src.LinearAlgebra.Types.Vector import Vector
+from SciJo.LinearAlgebra.Types.Matrix import Matrix
+from SciJo.LinearAlgebra.Types.Vector import Vector
 from testing import assert_equal, assert_not_equal
+from SciJo.SciJo.LinearAlgebra import Types
 
 
 fn test_getters_and_setters() raises:
@@ -156,6 +157,34 @@ fn test_matrix_multiplication() raises:
     assert_equal(matmul[1, 0], 15)
     assert_equal(matmul[1, 1], 22)
 
+fn test_inplace_matrix_multiplication() raises:
+
+    var mat1 = Matrix(4, 4)
+    var mat2 = Matrix(4, 4)
+
+    mat1[0, 0] = 1
+    mat1[0, 1] = 2
+    mat1[1, 0] = 3
+    mat1[1, 1] = 4
+    mat1[3, 3] = 5
+    mat1[2, 2] = 3
+
+    mat2[0, 0] = 1
+    mat2[0, 1] = 2
+    mat2[1, 0] = 3
+    mat2[1, 1] = 4
+    mat2[3, 3] = 5
+    mat2[2, 2] = 3
+
+    print(mat1)
+    print(mat2)
+
+    print(mat1 @ mat2)
+
+    mat1 @= mat2
+
+    print(mat1)
+
 
 fn test_matrix_vector_multiplication() raises:
 
@@ -200,5 +229,5 @@ fn test_transpose() raises:
     assert_equal(mat_transposed[2,0], 8)
      
 fn main() raises:
-    test_transpose()
+    test_inplace_matrix_multiplication()
 

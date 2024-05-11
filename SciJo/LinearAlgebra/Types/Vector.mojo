@@ -66,11 +66,11 @@ struct Vector[dtype: DType = DType.float64](CollectionElement, Stringable, Testa
 
     fn rand(self):
         seed()
-        rand(self.tensor.data(), self.size)
+        rand(self.tensor.unsafe_ptr(), self.size)
     
     fn randn(self):
         seed()
-        randn(self.tensor.data(), self.size)
+        randn(self.tensor.unsafe_ptr(), self.size)
 
     fn __str__(self) -> String:
         
